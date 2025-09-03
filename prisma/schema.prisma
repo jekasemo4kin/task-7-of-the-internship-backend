@@ -1,0 +1,175 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// команда в терминале открывает БД в браузере npx prisma studio
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String        @id @default(cuid())
+  email        String        @unique
+  name         String?
+  role         Role          @default(USER)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  inventories  Inventory[]   @relation("CreatedBy")
+  items        Item[]        @relation("ItemCreatedBy")
+  accessRights AccessRight[]
+  comments     Comment[]
+  likes        Like[]
+  passwordHash String?
+
+  googleId     String?       @unique
+  facebookId   String?       @unique
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+
+enum CategoryType {
+  FURNITURE
+  APPLIANCES
+  TRANSPORT
+  FOOD
+  CHEMICALS
+  OTHER
+}
+
+
+model Inventory {
+  id             String        @id @default(cuid())
+  title          String
+  description    String?
+
+  imageUrl       String?
+  isPublic       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  version        Int           @default(1) 
+
+  createdBy      User          @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById    String
+
+  category CategoryType @default(OTHER)
+
+  items          Item[]
+  customFields   CustomField[]
+  customIdConfig Json          @default("[]") 
+  accessRights   AccessRight[]
+  comments       Comment[]
+  tags           Tag[]         @relation("InventoryToTags")
+
+  searchable String?
+}
+
+model CustomField {
+  id          String     @id @default(cuid())
+  inventoryId String
+  name        String
+  description String?
+  type        FieldType
+  showInTable Boolean    @default(false)
+  position    Int        @default(0) 
+  createdAt   DateTime   @default(now())
+
+  inventory   Inventory  @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  orderIndex  Int     @default(0)
+}
+
+enum FieldType {
+  SINGLE_LINE_TEXT
+  MULTILINE_TEXT
+  NUMBER
+  DOCUMENT_IMAGE
+  BOOLEAN
+}
+
+model Item {
+  id           String   @id @default(cuid())
+  customId     String? 
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  version      Int      @default(1) 
+
+  customData   Json     @default("{}") 
+
+  inventory    Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  inventoryId  String
+  createdBy    User      @relation("ItemCreatedBy", fields: [createdById], references: [id])
+  createdById  String
+  likes        Like[]
+
+  comments     Comment[]
+
+  @@unique([inventoryId, customId]) 
+  @@index([inventoryId, customId])
+
+  searchable String?
+
+}
+
+model Tag {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  inventories Inventory[] @relation("InventoryToTags")
+}
+
+model AccessRight {
+  id          String    @id @default(cuid())
+  inventoryId String
+  userId      String
+  canWrite    Boolean   @default(false) 
+
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([inventoryId, userId])
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  text        String
+  createdAt   DateTime @default(now())
+
+  inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  inventoryId String?
+
+  item        Item?     @relation(fields: [itemId], references: [id])
+  itemId      String?
+
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String
+
+  
+
+  @@index([itemId])
+  @@index([inventoryId])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  itemId    String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+
+  @@unique([itemId, userId])
+}
+
+
+model AdminCode {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  createdAt   DateTime  @default(now())
+}
