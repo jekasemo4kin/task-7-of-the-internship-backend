@@ -8,15 +8,22 @@ passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
-passport.deserializeUser(async (id, done) => { 
-  done(null, user);
+passport.deserializeUser(async (id, done) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id } });
+    done(null, user);
+  } catch (error) {
+    done(error, null);
+  }
 });
 
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: '/api/auth/google/callback'
+  callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`,
+  scope: ['profile', 'email']
+  //callbackURL: '/api/auth/google/callback'
 },
 async (accessToken, refreshToken, profile, done) => {
   try {
@@ -47,7 +54,8 @@ async (accessToken, refreshToken, profile, done) => {
 passport.use(new FacebookStrategy({
   clientID: process.env.FACEBOOK_APP_ID,
   clientSecret: process.env.FACEBOOK_APP_SECRET,
-  callbackURL: '/api/auth/facebook/callback',
+  callbackURL: `${process.env.BACKEND_URL}/api/auth/facebook/callback`,
+  //callbackURL: '/api/auth/facebook/callback',
   profileFields: ['id', 'displayName', 'emails']
 },
 async (accessToken, refreshToken, profile, done) => {
