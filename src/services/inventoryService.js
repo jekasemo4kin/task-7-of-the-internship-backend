@@ -47,7 +47,7 @@ const getInventories = async (filters = {}) => {
         tags: {
           some: {
             name: { 
-              in: [name],
+              equals: name,
               mode: 'insensitive',
             },
           },
