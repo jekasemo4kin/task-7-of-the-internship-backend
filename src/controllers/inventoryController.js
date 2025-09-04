@@ -54,11 +54,7 @@ const createInventory = async (req, res) => {
       customFields: parsedCustomFields, 
       tags: parsedTags
     }, req.user.id);
-    if (parsedCustomFields && parsedCustomFields.length > 0) {
-      await Promise.all(parsedCustomFields.map(async (field) => {
-        await customFieldService.createCustomField(inventory.id, field);
-      }));
-    }
+    
     res.status(201).json(inventory);
   } catch (error) {
     console.error('Error in createInventory:', error);
